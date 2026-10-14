@@ -33,7 +33,7 @@
   "evolution-x": {
     "display": "Evolution-X",
     "author": "Evolution-X",
-    "repo": "Evolution-X-Devices/kernel_xiaomi_sm8450",
+    "repo": "almared2/kernel_xiaomi_sm8450",
     "default_ref": "cnb",
     "rom_label": "Evolution-X",
     "rom_family": "los",
