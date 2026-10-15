@@ -418,7 +418,6 @@ jobs:
           path: |
             kernel-source/release/*.zip
             kernel-source/release/*.zip.sha256
-            kernel-source/release/modules.tar.gz
             kernel-source/release/build-info.txt
             kernel-source/release/build-info.json
             kernel-source/release/summary.md
