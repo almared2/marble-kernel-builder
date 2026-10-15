@@ -204,6 +204,32 @@ if [[ "${BUILD_SCOPE}" == "full" ]]; then
   fi
 fi
 
+  # Create a focused MT7921U module archive for testing.
+  if grep -q '^CONFIG_MT7921U=m$' "${OUT_DIR}/.config"; then
+    mt7921_modules=(
+      "drivers/net/wireless/mediatek/mt76/mt76.ko"
+      "drivers/net/wireless/mediatek/mt76/mt76-usb.ko"
+      "drivers/net/wireless/mediatek/mt76/mt76-connac-lib.ko"
+      "drivers/net/wireless/mediatek/mt76/mt7921/mt7921-common.ko"
+      "drivers/net/wireless/mediatek/mt76/mt7921/mt7921u.ko"
+    )
+
+    for module in "${mt7921_modules[@]}"; do
+      if [[ ! -s "${OUT_DIR}/${module}" ]]; then
+        echo "::error::Expected MT7921U module is missing: ${OUT_DIR}/${module}"
+        exit 1
+      fi
+    done
+
+    if [[ "${BUILD_SCOPE}" == "full" ]]; then
+      tar -czf "${RELEASE_DIR}/mt7921u-modules.tar.gz" \
+        -C "${OUT_DIR}" "${mt7921_modules[@]}"
+      sha256sum "${RELEASE_DIR}/mt7921u-modules.tar.gz" \
+        > "${RELEASE_DIR}/mt7921u-modules.tar.gz.sha256"
+      echo "Created MT7921U module archive" | tee -a "${RELEASE_DIR}/build.log"
+    fi
+  fi
+
 if [[ "${USE_CCACHE}" == "true" ]] && command -v ccache >/dev/null 2>&1; then
   ccache -s | tee "${RELEASE_DIR}/ccache-stats.txt" || true
 fi
