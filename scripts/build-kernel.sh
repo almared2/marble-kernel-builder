@@ -195,31 +195,6 @@ for file in System.map vmlinux; do
   fi
 done
 
-if [[ "${BUILD_SCOPE}" == "full" ]]; then
-  if find "${OUT_DIR}/arch/arm64/boot/dts" -name '*.dtb' -print -quit | grep -q .; then
-    find "${OUT_DIR}/arch/arm64/boot/dts" -name '*.dtb' -print0 | tar --null -T - -czf "${RELEASE_DIR}/dtbs.tar.gz"
-  fi
-  if find "${OUT_DIR}" -name '*.ko' -print -quit | grep -q .; then
-    find "${OUT_DIR}" -name '*.ko' -print0 | tar --null -T - -czf "${RELEASE_DIR}/modules.tar.gz"
-  fi
-fi
-
-  # Create a focused MT7921U module archive for testing.
-  if grep -q '^CONFIG_MT7921U=m$' "${OUT_DIR}/.config"; then
-    mt7921_modules=(
-      "drivers/net/wireless/mediatek/mt76/mt76.ko"
-      "drivers/net/wireless/mediatek/mt76/mt76-usb.ko"
-      "drivers/net/wireless/mediatek/mt76/mt76-connac-lib.ko"
-      "drivers/net/wireless/mediatek/mt76/mt7921/mt7921-common.ko"
-      "drivers/net/wireless/mediatek/mt76/mt7921/mt7921u.ko"
-    )
-
-    for module in "${mt7921_modules[@]}"; do
-      if [[ ! -s "${OUT_DIR}/${module}" ]]; then
-        echo "::error::Expected MT7921U module is missing: ${OUT_DIR}/${module}"
-        exit 1
-      fi
-    done
 
     if [[ "${BUILD_SCOPE}" == "full" ]]; then
       tar -czf "${RELEASE_DIR}/mt7921u-modules.tar.gz" \
@@ -227,7 +202,86 @@ fi
       sha256sum "${RELEASE_DIR}/mt7921u-modules.tar.gz" \
         > "${RELEASE_DIR}/mt7921u-modules.tar.gz.sha256"
       echo "Created MT7921U module archive" | tee -a "${RELEASE_DIR}/build.log"
+
+      # Create a KernelSU Next module for persistent MT7921U loading.
+      module_stage="$(mktemp -d)"
+      trap 'rm -rf "${module_stage}"' EXIT
+
+      mkdir -p "${module_stage}/system/lib/modules"
+
+      for module in "${mt7921_modules[@]}"; do
+        cp "${OUT_DIR}/${module}" "${module_stage}/system/lib/modules/"
+      done
+
+      cat > "${module_stage}/module.prop" <<'EOF'
+id=mt7921u
+name=MT7921U USB Wi-Fi Driver
+version=1.0
+versionCode=1
+author=almared2
+description=Loads MT7921U USB Wi-Fi driver modules at boot.
+EOF
+
+      cat > "${module_stage}/service.sh" <<'EOF'
+#!/system/bin/sh
+
+MODDIR="${0%/*}"
+TAG="mt7921u-module"
+FW_ROOT="/data/adb/modules/netkernel-modules/system/etc/firmware"
+FW_DIR="${FW_ROOT}/mediatek"
+
+# Set the firmware search path if the existing firmware module is installed.
+if [ -d "$FW_DIR" ] && [ -w /sys/module/firmware_class/parameters/path ]; then
+    echo -n "$FW_ROOT" > /sys/module/firmware_class/parameters/path
+fi
+
+load_module() {
+    name="$1"
+    file="$2"
+
+    if grep -q "^${name} " /proc/modules; then
+        log -t "$TAG" "$name is already loaded"
+        return 0
     fi
+
+    if [ ! -s "$file" ]; then
+        log -t "$TAG" "Missing module: $file"
+        return 1
+    fi
+
+    if insmod "$file"; then
+        log -t "$TAG" "Loaded $name"
+        return 0
+    else
+        log -t "$TAG" "FAILED to load $name"
+        return 1
+    fi
+}
+
+load_module mt76 "$MODDIR/system/lib/modules/mt76.ko"
+load_module mt76_usb "$MODDIR/system/lib/modules/mt76-usb.ko"
+load_module mt76_connac_lib "$MODDIR/system/lib/modules/mt76-connac-lib.ko"
+load_module mt7921_common "$MODDIR/system/lib/modules/mt7921-common.ko"
+load_module mt7921u "$MODDIR/system/lib/modules/mt7921u.ko"
+EOF
+
+      chmod 0755 "${module_stage}/service.sh"
+
+      (
+        cd "${module_stage}"
+        zip -qr "${RELEASE_DIR}/mt7921u-kernelsu-next.zip" .
+      )
+
+      sha256sum "${RELEASE_DIR}/mt7921u-kernelsu-next.zip" \
+        > "${RELEASE_DIR}/mt7921u-kernelsu-next.zip.sha256"
+
+      rm -rf "${module_stage}"
+      trap - EXIT
+
+      echo "Created MT7921U KernelSU Next module ZIP" \
+        | tee -a "${RELEASE_DIR}/build.log"
+    fi
+
   fi
 
 if [[ "${USE_CCACHE}" == "true" ]] && command -v ccache >/dev/null 2>&1; then
