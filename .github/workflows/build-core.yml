@@ -424,6 +424,17 @@ jobs:
             kernel-source/release/zip-audit.txt
             kernel-source/release/ccache-stats.txt
             kernel-source/release/zip-name.env
+            
+      - name: Upload kernel modules for inspection
+        if: ${{ env.BUILD_SCOPE == 'full' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: marble-modules-${{ inputs.artifact_label }}-r${{ github.run_number }}
+          path: kernel-source/release/modules.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
 
       # Object caches: save even when the build fails (e.g. 90% compile then OOM),
       # so the next run can reuse partial work. Never save on cancel. Exact GHA
