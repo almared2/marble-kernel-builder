@@ -39,7 +39,7 @@ if [[ "${#artifact_dirs[@]}" -eq 0 ]]; then
     echo
     echo "The matrix run did not produce any flashable build artifacts with the required metadata."
     echo
-    echo "- **Build scope:** `${BUILD_SCOPE}`"
+    echo "- **Build scope:** \`${BUILD_SCOPE}\`"
     echo "- **Workflow run:** [Open build logs](${workflow_run})"
     echo
     echo "This is a failure summary, not a successful build report. Inspect the failed matrix job for the primary error."
