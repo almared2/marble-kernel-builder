@@ -6,7 +6,7 @@ on:
       build_source_melt:
         description: "Source: Melt (Stock HyperOS)"
         type: boolean
-        default: true
+        default: false
       build_source_lineageos:
         description: "Source: LineageOS (LOS ROMs)"
         type: boolean
@@ -14,7 +14,7 @@ on:
       build_source_evolution_x:
         description: "Source: Evolution-X (LOS ROMs)"
         type: boolean
-        default: false
+        default: true
       build_source_aosp_pablo:
         description: "Source: aosp-pablo (LOS ROMs)"
         type: boolean
@@ -42,7 +42,7 @@ on:
       build_none:
         description: "Manager: Baseline (No Root)"
         type: boolean
-        default: false
+        default: true
       build_kernelsu:
         description: "Manager: KernelSU (No SUSFS)"
         type: boolean
@@ -85,7 +85,7 @@ on:
       build_scope:
         description: Build target set
         type: choice
-        default: image-only
+        default: full
         options:
           - image-only
           - full
