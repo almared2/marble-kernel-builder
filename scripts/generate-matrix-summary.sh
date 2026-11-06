@@ -9,8 +9,7 @@ MATRIX_SUMMARY="${MATRIX_SUMMARY:-matrix-summary.md}"
 BUILD_SCOPE="${BUILD_SCOPE:-image-only}"
 
 if [[ ! -d "${MATRIX_ARTIFACTS_DIR}" ]]; then
-  echo "::error::Matrix artifacts directory not found: ${MATRIX_ARTIFACTS_DIR}"
-  exit 1
+  mkdir -p "${MATRIX_ARTIFACTS_DIR}"
 fi
 
 artifact_dirs=()
@@ -32,8 +31,21 @@ done
 artifact_dirs=("${valid_dirs[@]}")
 
 if [[ "${#artifact_dirs[@]}" -eq 0 ]]; then
-  echo "::error::No matrix flash artifact metadata found in ${MATRIX_ARTIFACTS_DIR}"
-  exit 1
+  workflow_run="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-unknown}/actions/runs/${GITHUB_RUN_ID:-unknown}"
+  {
+    echo "# Marble Kernel · Matrix Build"
+    echo
+    echo "## No successful build artifacts"
+    echo
+    echo "The matrix run did not produce any flashable build artifacts with the required metadata."
+    echo
+    echo "- **Build scope:** `${BUILD_SCOPE}`"
+    echo "- **Workflow run:** [Open build logs](${workflow_run})"
+    echo
+    echo "This is a failure summary, not a successful build report. Inspect the failed matrix job for the primary error."
+  } > "${MATRIX_SUMMARY}"
+  cat "${MATRIX_SUMMARY}"
+  exit 0
 fi
 
 get_info() { summary_get_info "$1" "$2"; }
