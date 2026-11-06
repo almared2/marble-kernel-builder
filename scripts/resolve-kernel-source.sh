@@ -5,6 +5,14 @@ KERNEL_SOURCE="${KERNEL_SOURCE:-melt}"
 # Optional override for branch/tag/commit. Empty means use the preset default.
 SOURCE_REF="${SOURCE_REF:-}"
 
+# Validate user-supplied refs before writing them to GITHUB_ENV/GITHUB_OUTPUT.
+# This prevents newline-based environment-file injection and keeps refs within
+# the same conservative character policy used by validate-inputs.sh.
+if [[ -n "${SOURCE_REF}" && ! "${SOURCE_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+  echo "::error::SOURCE_REF contains invalid characters"
+  exit 1
+fi
+
 if [[ ! -f config/kernel-sources.json ]]; then
   echo "::error::config/kernel-sources.json is missing"
   exit 1
